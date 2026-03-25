@@ -1,9 +1,12 @@
-import type { IGetUsersController } from './protocol';
+import type { IGetUsersController, IGetUsersRepository } from './protocols';
 
 export class GetUsersController implements IGetUsersController {
+    constructor(private readonly getUsersRepository: IGetUsersRepository) {}
     async handler() {
+        const users = await this.getUsersRepository.getUsers();
         return {
-            message: 'Mensagem enviada da controller de get users'
+            statusCode: 200,
+            body: users
         };
     }
 }
