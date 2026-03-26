@@ -3,10 +3,11 @@ FROM node:lts-alpine AS builder
 WORKDIR /usr/src/app
 COPY package*.json ./
 COPY tsconfig.json ./
+COPY prisma ./prisma
 COPY src ./src
 RUN npm ci --silent
 RUN npm run build
-RUN npm ci --silent --omit=dev 
+RUN npm prune --omit=dev 
 
 FROM node:lts-alpine AS runner
 WORKDIR /usr/src/app

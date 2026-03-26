@@ -4,7 +4,7 @@ import { PostgresGetUsers } from '../repositories/get-users/postgres-get-users';
 
 const router = express.Router();
 
-router.get('/users', async (req, res) => {
+router.get('/', async (req, res) => {
     const postgresGetRepository = new PostgresGetUsers();
     const getUsersController = new GetUsersController(postgresGetRepository);
     const result = await getUsersController.handler();

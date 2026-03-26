@@ -1,12 +1,14 @@
 import { Router } from 'express';
 import getUsersRouter from './get-users';
+import createNoticiasRouter from './create-noticias';
+import healthRouter from './health';
 
 const router = Router();
 
-router.get('/health', (req, res) => {
-  res.send('Api está no ar!');
-});
+router.use('/', healthRouter);
 
-router.use('/', getUsersRouter);
+
+router.use('/users', getUsersRouter);
+router.use('/noticias', createNoticiasRouter);
 
 export default router;

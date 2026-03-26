@@ -5,9 +5,12 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "tsx src/index.ts",
+    "start": "node dist/server.js",
+    "dev": "tsx src/server.ts",
     "start:dev": "nodemon --watch src --exec \"tsx src/server.ts\" -e ts",
-    "build": "tsc"
+    "build": "npm run prisma:generate && tsc",
+    "prisma:generate": "prisma generate",
+    "prisma:push": "prisma db push"
   },
   "repository": {
     "type": "git",
@@ -21,15 +24,20 @@
   },
   "homepage": "https://github.com/devmaster-organizations/backend_abp_autoatendimento#readme",
   "dependencies": {
+    "@prisma/adapter-pg": "^7.5.0",
+    "@prisma/client": "^7.5.0",
     "cors": "^2.8.5",
     "dotenv": "^17.3.1",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "pg": "^8.20.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^25.5.0",
+    "@types/pg": "^8.20.0",
     "nodemon": "^3.1.14",
+    "prisma": "^7.5.0",
     "tsx": "^4.21.0",
     "typescript": "^6.0.2"
   }

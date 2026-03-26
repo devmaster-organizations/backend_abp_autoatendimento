@@ -4,20 +4,32 @@ services:
     build:
       context: ..
       dockerfile: infra/Dockerfile
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/autoatendimento?schema=public
     ports:
       - "3001:3000"
     volumes:
       - .:/app
+    depends_on:
+      - postgres
     command: npm run start
-
+    networks:
+      - backend-dev
 
   postgres:
-    image: postgres:15
+    image: postgres:17
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
       POSTGRES_DB: autoatendimento
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    networks:
+      - backend-dev
+volumes:
+  pgdata:
+networks:
+  backend-dev:
