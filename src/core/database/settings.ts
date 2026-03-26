@@ -1,3 +1,5 @@
+import 'dotenv/config';
+
 const DEFAULT_POSTGRES_HOST = 'localhost';
 const DEFAULT_POSTGRES_PORT = '5432';
 const DEFAULT_POSTGRES_USER = 'postgres';
