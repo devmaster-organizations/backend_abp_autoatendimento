@@ -4,20 +4,24 @@ services:
     build:
       context: ..
       dockerfile: infra/Dockerfile
+      target: dev
+    working_dir: /usr/src/app
     environment:
       PORT: 3000
       DATABASE_URL: postgresql://postgres:password@postgres:5432/autoatendimento?schema=public
     ports:
       - "3001:3000"
     volumes:
-      - .:/app
+      - ../:/usr/src/app
+      - /usr/src/app/node_modules
     depends_on:
       - postgres
-    command: npm run start
+    command: npm run start:dev
     networks:
       - backend-dev
 
   postgres:
+    container_name: postgres
     image: postgres:17
     environment:
       POSTGRES_USER: postgres
@@ -29,6 +33,20 @@ services:
       - pgdata:/var/lib/postgresql/data
     networks:
       - backend-dev
+
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: "backend@fatec.com" 
+      PGADMIN_DEFAULT_PASSWORD: "password"
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - backend-dev
+
+
 volumes:
   pgdata:
 networks:
