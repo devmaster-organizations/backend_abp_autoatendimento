@@ -25,3 +25,19 @@ model Noticias {
     userCreateId Int
     userCreate   User     @relation(fields: [userCreateId], references: [id])
 }
+
+model Professor {
+  id Int @id @default(autoincrement())
+  nome String
+  especialidade String
+  createAt DateTime @default(now())
+  updateAt DateTime @updatedAt
+}
+
+model Alunos {
+  id Int @id @default(autoincrement())
+  nome String
+  especialidade String
+  createAt DateTime @default(now())
+  updateAt DateTime @updatedAt
+}
