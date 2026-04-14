@@ -1,8 +1,3 @@
-// Arquivo de referencia.
-// O Prisma carrega todos os arquivos .prisma do workspace como um conjunto unico,
-// entao este arquivo fica comentado para nao conflitar com o schema ativo.
-
-
 generator client {
   provider = "prisma-client-js"
 }
