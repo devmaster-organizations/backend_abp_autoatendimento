@@ -15,8 +15,9 @@ services:
       - ../:/usr/src/app
       - /usr/src/app/node_modules
     depends_on:
-      - postgres
-    command: npm run start:dev
+      postgres:
+        condition: service_healthy
+    command: sh -c "npm run prisma:generate && npx prisma migrate deploy && npm run start:dev"
     networks:
       - backend-dev
 
@@ -31,6 +32,11 @@ services:
       - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d autoatendimento"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     networks:
       - backend-dev
 
