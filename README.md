@@ -13,6 +13,13 @@ Guia pratico para criar novas rotas seguindo o padrao atual do projeto.
 - `GET /api/navigation-logs`: lista nos com filtros `parentId` e `onlyActive`
 - `GET /api/navigation-logs/:slug`: busca no por slug com filhos ativos
 
+## Testes
+
+- Executar todos os testes: `npm test`
+- Rodar em watch mode: `npm run test:watch`
+
+A suite cobre as rotas principais (`health`, `users` e `navigation-logs`) com Vitest + Supertest.
+
 Compatibilidade temporaria:
 
 - `POST /api/navagation-logs`
