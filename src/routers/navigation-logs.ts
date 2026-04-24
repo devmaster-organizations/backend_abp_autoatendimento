@@ -5,6 +5,7 @@ import {
   PostgresNavigationLogsRepository,
 } from '../repositories/navigation_logs/postgres-navigation-logs';
 import { serializeBigInt } from '../utils/serialize';
+import { authMiddleware } from '../middlewares/auth';
 
 const router = Router();
 const repository = new PostgresNavigationLogsRepository();
@@ -31,7 +32,7 @@ const parseOptionalBigint = (value: unknown): bigint | null | undefined => {
   }
 };
 
-router.post('/', async (req, res) => {
+router.post('/', authMiddleware, async (req, res) => {
   try {
     const hasParentId = Object.prototype.hasOwnProperty.call(req.body, 'parentId');
     const parentId = parseOptionalBigint(req.body.parentId);

@@ -6,6 +6,8 @@ const { mockPrisma } = vi.hoisted(() => ({
     user: {
       create: vi.fn(),
       findMany: vi.fn(),
+      findUnique: vi.fn(),
+      count: vi.fn(),
     },
     navigationNode: {
       create: vi.fn(),
@@ -22,6 +24,10 @@ vi.mock('../src/core/database/prisma', () => ({
 }));
 
 import { createApp } from '../src/app';
+import { signToken } from '../src/core/security/jwt';
+
+// token valido para testes (usa o mesmo JWT_SECRET padrao do middleware)
+const testToken = signToken({ sub: 'test-user-id', role: 'ADMIN' });
 
 describe('API routes', () => {
   beforeEach(() => {
@@ -48,6 +54,7 @@ describe('API routes', () => {
   });
 
   it('POST /api/users creates a user with public payload', async () => {
+    mockPrisma.user.count.mockResolvedValue(1);
     mockPrisma.user.create.mockResolvedValue({
       id: 'u1',
       name: 'Ana',
@@ -58,11 +65,14 @@ describe('API routes', () => {
     });
 
     const app = createApp();
-    const response = await request(app).post('/api/users').send({
-      name: 'Ana',
-      email: 'ana@email.com',
-      password: '123456',
-    });
+    const response = await request(app)
+      .post('/api/users')
+      .set('Authorization', `Bearer ${testToken}`)
+      .send({
+        name: 'Ana',
+        email: 'ana@email.com',
+        password: '123456',
+      });
 
     expect(response.status).toBe(201);
     expect(response.body.email).toBe('ana@email.com');
@@ -72,13 +82,37 @@ describe('API routes', () => {
   });
 
   it('POST /api/users returns 400 when payload is invalid', async () => {
+    mockPrisma.user.count.mockResolvedValue(1);
     const app = createApp();
-    const response = await request(app).post('/api/users').send({
-      name: 'Ana',
-    });
+    const response = await request(app)
+      .post('/api/users')
+      .set('Authorization', `Bearer ${testToken}`)
+      .send({ name: 'Ana' });
 
     expect(response.status).toBe(400);
     expect(response.body.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('POST /api/users allows first user creation without token', async () => {
+    mockPrisma.user.count.mockResolvedValue(0);
+    mockPrisma.user.create.mockResolvedValue({
+      id: 'u1',
+      name: 'Admin',
+      email: 'admin@email.com',
+      role: 'ADMIN',
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+    });
+
+    const app = createApp();
+    const response = await request(app).post('/api/users').send({
+      name: 'Admin',
+      email: 'admin@email.com',
+      password: '123456',
+    });
+
+    expect(response.status).toBe(201);
+    expect(response.body.email).toBe('admin@email.com');
   });
 
   it('GET /api/users returns array', async () => {
@@ -94,7 +128,9 @@ describe('API routes', () => {
     ]);
 
     const app = createApp();
-    const response = await request(app).get('/api/users');
+    const response = await request(app)
+      .get('/api/users')
+      .set('Authorization', `Bearer ${testToken}`);
 
     expect(response.status).toBe(200);
     expect(Array.isArray(response.body)).toBe(true);
@@ -118,10 +154,13 @@ describe('API routes', () => {
     });
 
     const app = createApp();
-    const response = await request(app).post('/api/navigation-logs').send({
-      title: 'Inicio',
-      slug: 'inicio',
-    });
+    const response = await request(app)
+      .post('/api/navigation-logs')
+      .set('Authorization', `Bearer ${testToken}`)
+      .send({
+        title: 'Inicio',
+        slug: 'inicio',
+      });
 
     expect(response.status).toBe(201);
     expect(response.body.id).toBe('1');
@@ -130,11 +169,14 @@ describe('API routes', () => {
 
   it('POST /api/navigation-logs returns 400 for invalid parentId', async () => {
     const app = createApp();
-    const response = await request(app).post('/api/navigation-logs').send({
-      title: 'Inicio',
-      slug: 'inicio',
-      parentId: 'abc',
-    });
+    const response = await request(app)
+      .post('/api/navigation-logs')
+      .set('Authorization', `Bearer ${testToken}`)
+      .send({
+        title: 'Inicio',
+        slug: 'inicio',
+        parentId: 'abc',
+      });
 
     expect(response.status).toBe(400);
     expect(response.body.code).toBe('VALIDATION_ERROR');

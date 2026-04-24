@@ -15,16 +15,18 @@ Guia pratico para criar novas rotas seguindo o padrao atual do projeto.
 
 ## Testes
 
-- Executar todos os testes: `npm test`
-- Rodar em watch mode: `npm run test:watch`
+- Executar todos os testes (uma vez): `npm test`
+- Rodar em watch mode (reexecuta ao salvar): `npm run test:watch`
+- Rodar arquivo especifico de teste: `npx vitest run tests/api.test.ts`
 
 A suite cobre as rotas principais (`health`, `users` e `navigation-logs`) com Vitest + Supertest.
 
-Compatibilidade temporaria:
+### Como executar no terminal
 
-- `POST /api/navagation-logs`
-- `GET /api/navagation-logs`
-- `GET /api/navagation-logs/:slug`
+```bash
+cd /home/branches/.learning/fatec/backend_abp_autoatendimento
+npm test
+```
 
 ## Stack
 

@@ -13,10 +13,18 @@ const openApiDocument = {
   ],
   tags: [
     { name: 'Health' },
+    { name: 'Auth' },
     { name: 'Users' },
     { name: 'NavigationLogs' },
   ],
   components: {
+    securitySchemes: {
+      bearerAuth: {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+      },
+    },
     schemas: {
       ErrorResponse: {
         type: 'object',
@@ -26,6 +34,22 @@ const openApiDocument = {
           details: {},
         },
         required: ['message', 'code'],
+      },
+      LoginInput: {
+        type: 'object',
+        properties: {
+          email: { type: 'string', format: 'email' },
+          password: { type: 'string', minLength: 6 },
+        },
+        required: ['email', 'password'],
+      },
+      AuthResponse: {
+        type: 'object',
+        properties: {
+          token: { type: 'string', description: 'JWT Bearer token' },
+          expiresIn: { type: 'string', example: '8h' },
+        },
+        required: ['token', 'expiresIn'],
       },
       UserPublic: {
         type: 'object',
@@ -123,10 +147,53 @@ const openApiDocument = {
         },
       },
     },
+    '/auth/login': {
+      post: {
+        tags: ['Auth'],
+        summary: 'Autentica usuario e retorna JWT',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/LoginInput' },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Autenticado com sucesso',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/AuthResponse' },
+              },
+            },
+          },
+          '400': {
+            description: 'Payload invalido',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          '401': {
+            description: 'Credenciais invalidas',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
     '/users': {
       post: {
         tags: ['Users'],
         summary: 'Cria usuario',
+        security: [{ bearerAuth: [] }],
+        description:
+          'A primeira criacao de usuario (quando nao existe nenhum no banco) pode ser feita sem token. A partir do segundo usuario, JWT Bearer e obrigatorio.',
         requestBody: {
           required: true,
           content: {
@@ -165,6 +232,7 @@ const openApiDocument = {
       get: {
         tags: ['Users'],
         summary: 'Lista usuarios',
+        security: [{ bearerAuth: [] }],
         responses: {
           '200': {
             description: 'Lista de usuarios',
@@ -184,6 +252,7 @@ const openApiDocument = {
       post: {
         tags: ['NavigationLogs'],
         summary: 'Cria no de navegacao',
+        security: [{ bearerAuth: [] }],
         requestBody: {
           required: true,
           content: {
@@ -296,59 +365,6 @@ const openApiDocument = {
                 schema: { $ref: '#/components/schemas/ErrorResponse' },
               },
             },
-          },
-        },
-      },
-    },
-    '/navagation-logs': {
-      post: {
-        tags: ['NavigationLogs'],
-        deprecated: true,
-        summary: 'Alias legado de criacao de no (deprecated)',
-        requestBody: {
-          required: true,
-          content: {
-            'application/json': {
-              schema: { $ref: '#/components/schemas/CreateNavigationNodeInput' },
-            },
-          },
-        },
-        responses: {
-          '201': {
-            description: 'No criado',
-          },
-        },
-      },
-      get: {
-        tags: ['NavigationLogs'],
-        deprecated: true,
-        summary: 'Alias legado de listagem de nos (deprecated)',
-        responses: {
-          '200': {
-            description: 'Lista de nos',
-          },
-        },
-      },
-    },
-    '/navagation-logs/{slug}': {
-      get: {
-        tags: ['NavigationLogs'],
-        deprecated: true,
-        summary: 'Alias legado de busca por slug (deprecated)',
-        parameters: [
-          {
-            name: 'slug',
-            in: 'path',
-            required: true,
-            schema: { type: 'string' },
-          },
-        ],
-        responses: {
-          '200': {
-            description: 'No encontrado',
-          },
-          '404': {
-            description: 'Nao encontrado',
           },
         },
       },
