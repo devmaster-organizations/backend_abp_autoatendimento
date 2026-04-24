@@ -1,10 +1,18 @@
-import type { HttpResponse } from "../protocols";
-import type { User } from "../../models/users";
+import type { UserRole } from '@prisma/client';
+import type { HttpResponse } from '../protocols';
+import type { UserCreateData, UserPublic } from '../../models/users';
+
+export interface CreateUserInput {
+    name: string;
+    email: string;
+    password: string;
+    role?: UserRole;
+}
 
 export interface IPostUsersController {
-    handler(userData: User): Promise<HttpResponse<User>>;
+    handler(userData: CreateUserInput): Promise<HttpResponse<UserPublic>>;
 }
 
 export interface IPostUsersRepository {
-    postUser(userData: User): Promise<User>;
+    postUser(userData: UserCreateData): Promise<UserPublic>;
 }
