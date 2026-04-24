@@ -4,6 +4,8 @@ Guia pratico para criar novas rotas seguindo o padrao atual do projeto.
 
 ## Endpoints principais
 
+- `GET /api/docs`: Swagger UI
+- `GET /api/openapi.json`: especificacao OpenAPI em JSON
 - `GET /api/health`: healthcheck simples para monitoramento
 - `POST /api/users`: cria usuario (`name`, `email`, `password`)
 - `GET /api/users`: lista usuarios sem campos sensiveis

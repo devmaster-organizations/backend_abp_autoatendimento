@@ -1,9 +1,11 @@
 import express from 'express';
 import cors from 'cors';
+import swaggerUi from 'swagger-ui-express';
 import router from './routers';
 import { config } from 'dotenv';
 import { postgres } from './core/database/postgres';
 import { connectPrisma, disconnectPrisma } from './core/database/prisma';
+import openApiDocument from './docs/openapi';
 
 config();
 
@@ -12,6 +14,10 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
+app.get('/api/openapi.json', (_req, res) => {
+  res.status(200).json(openApiDocument);
+});
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openApiDocument));
 app.use('/api', router);
 
 app.get('/', (_req, res) => {
