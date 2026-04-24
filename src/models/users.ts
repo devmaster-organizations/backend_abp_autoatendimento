@@ -1,13 +1,17 @@
-export class User {
-    id: number | null;
+import type { UserRole } from '@prisma/client';
+
+export interface UserCreateData {
     name: string;
     email: string;
-    password: string;
+    passwordHash: string;
+    role?: UserRole;
+}
 
-    constructor(id: number, name: string, email: string, password: string) {
-        this.id = id;
-        this.name = name;
-        this.email = email;
-        this.password = password;
-    }
+export interface UserPublic {
+    id: string;
+    name: string;
+    email: string;
+    role: UserRole;
+    createdAt: Date;
+    updatedAt: Date;
 }
