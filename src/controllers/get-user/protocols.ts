@@ -1,12 +1,10 @@
-import type { HttpResponse } from "../protocols";
-import type { User } from "../../models/users";
+import type { HttpResponse } from '../protocols';
+import type { UserPublic } from '../../models/users';
 
 export interface IGetUsersController {
-
-    handler(): Promise<HttpResponse<User[]>>;
+    handler(): Promise<HttpResponse<UserPublic[]>>;
 }
 
 export interface IGetUsersRepository {
-
-    getUsers(): Promise<User[]>;
+    getUsers(): Promise<UserPublic[]>;
 }

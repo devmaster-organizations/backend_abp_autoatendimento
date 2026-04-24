@@ -2,6 +2,32 @@
 
 Guia pratico para criar novas rotas seguindo o padrao atual do projeto.
 
+## Endpoints principais
+
+- `GET /api/docs`: Swagger UI
+- `GET /api/openapi.json`: especificacao OpenAPI em JSON
+- `GET /api/health`: healthcheck simples para monitoramento
+- `POST /api/users`: cria usuario (`name`, `email`, `password`)
+- `GET /api/users`: lista usuarios sem campos sensiveis
+- `POST /api/navigation-logs`: cria no de navegacao com payload plano
+- `GET /api/navigation-logs`: lista nos com filtros `parentId` e `onlyActive`
+- `GET /api/navigation-logs/:slug`: busca no por slug com filhos ativos
+
+## Testes
+
+- Executar todos os testes (uma vez): `npm test`
+- Rodar em watch mode (reexecuta ao salvar): `npm run test:watch`
+- Rodar arquivo especifico de teste: `npx vitest run tests/api.test.ts`
+
+A suite cobre as rotas principais (`health`, `users` e `navigation-logs`) com Vitest + Supertest.
+
+### Como executar no terminal
+
+```bash
+cd /home/branches/.learning/fatec/backend_abp_autoatendimento
+npm test
+```
+
 ## Stack
 
 - Node.js + TypeScript
