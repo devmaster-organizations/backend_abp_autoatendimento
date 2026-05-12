@@ -1,0 +1,59 @@
+services:
+
+  api:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile
+      target: dev
+    working_dir: /usr/src/app
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/autoatendimento?schema=public
+    ports:
+      - "3001:3000"
+    volumes:
+      - ../:/usr/src/app
+      - /usr/src/app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: sh -c "npm run prisma:generate && npx prisma migrate deploy && npm run start:dev"
+    networks:
+      - backend-dev
+
+  postgres:
+    container_name: postgres
+    image: postgres:17
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: autoatendimento
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d autoatendimento"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - backend-dev
+
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: "backend@fatec.com" 
+      PGADMIN_DEFAULT_PASSWORD: "password"
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - backend-dev
+
+
+volumes:
+  pgdata:
+networks:
+  backend-dev:
