@@ -9,6 +9,8 @@ RUN npm ci --silent
 RUN npm run build
 
 FROM builder AS dev
+COPY prisma ./prisma
+COPY src ./src
 
 FROM builder AS production-deps
 RUN npm prune --omit=dev
