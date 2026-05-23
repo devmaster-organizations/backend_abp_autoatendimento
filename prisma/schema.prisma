@@ -60,6 +60,34 @@ model NavigationNode {
   @@map("navigation_nodes")
 }
 
+model ChatFlowNode {
+  id            String           @id @db.VarChar(120)
+  botMessage    String           @map("bot_message")
+  createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+  options       ChatFlowOption[] @relation("ChatFlowOptionsFromNode")
+  incomingLinks ChatFlowOption[] @relation("ChatFlowOptionsToNode")
+
+  @@map("chat_flow_nodes")
+}
+
+model ChatFlowOption {
+  id           BigInt       @id @default(autoincrement()) @db.BigInt
+  label        String       @db.VarChar(180)
+  fromNodeId   String       @map("from_node_id") @db.VarChar(120)
+  toNodeId     String       @map("to_node_id") @db.VarChar(120)
+  displayOrder Int          @default(0) @map("display_order")
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  fromNode     ChatFlowNode @relation("ChatFlowOptionsFromNode", fields: [fromNodeId], references: [id], onDelete: Cascade)
+  toNode       ChatFlowNode @relation("ChatFlowOptionsToNode", fields: [toNodeId], references: [id], onDelete: Cascade)
+
+  @@index([fromNodeId], map: "idx_chat_flow_options_from_node_id")
+  @@index([toNodeId], map: "idx_chat_flow_options_to_node_id")
+  @@unique([fromNodeId, displayOrder], map: "uq_chat_flow_options_from_order")
+  @@map("chat_flow_options")
+}
+
 model Inquiry {
   id                 BigInt         @id @default(autoincrement()) @db.BigInt
   requesterName      String         @map("requester_name") @db.VarChar(160)
