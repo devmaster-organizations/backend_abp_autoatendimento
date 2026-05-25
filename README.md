@@ -13,6 +13,37 @@ Guia pratico para criar novas rotas seguindo o padrao atual do projeto.
 - `GET /api/navigation-logs`: lista nos com filtros `parentId` e `onlyActive`
 - `GET /api/navigation-logs/:slug`: busca no por slug com filhos ativos
 
+## Recuperacao de senha por e-mail (SMTP)
+
+Para envio real do token de recuperacao, configure as variaveis abaixo:
+
+- `FRONTEND_URL` (ex: `http://localhost:3000`)
+- `SMTP_HOST`
+- `SMTP_PORT` (ex: `587`)
+- `SMTP_SECURE` (`true` para 465, `false` para 587)
+- `SMTP_USER`
+- `SMTP_AUTH_METHOD` (`login` ou `oauth2`; padrao: `login`)
+- `SMTP_PASS` (obrigatorio quando `SMTP_AUTH_METHOD=login`)
+- `SMTP_FROM` (ex: `noreply@fatec.local`)
+
+Para Outlook/Microsoft (quando `AUTH LOGIN` estiver bloqueado), use OAuth2:
+
+- `SMTP_AUTH_METHOD=oauth2`
+- `SMTP_OAUTH2_TENANT_ID` (ex: `common`)
+- `SMTP_OAUTH2_CLIENT_ID`
+- `SMTP_OAUTH2_CLIENT_SECRET`
+- `SMTP_OAUTH2_REFRESH_TOKEN` (recomendado)
+- `SMTP_OAUTH2_ACCESS_TOKEN` (opcional, alternativo ao refresh token)
+- `SMTP_OAUTH2_ACCESS_URL` (opcional; padrao: `https://login.microsoftonline.com/<TENANT>/oauth2/v2.0/token`)
+
+Com SMTP configurado:
+
+1. `POST /api/auth/forgot-password` envia o token por e-mail
+2. Usuario abre `/reset-password`
+3. Informa token + nova senha
+
+Sem SMTP configurado em ambiente de desenvolvimento, o token e exibido no log da API como fallback.
+
 ## Testes
 
 - Executar todos os testes (uma vez): `npm test`

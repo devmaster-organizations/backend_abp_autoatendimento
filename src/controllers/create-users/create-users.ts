@@ -12,6 +12,12 @@ export class CreateUsersController implements IPostUsersController {
             email: userData.email,
             passwordHash: hashPassword(userData.password),
             ...(userData.role ? { role: userData.role } : {}),
+            ...(typeof userData.mustChangePassword === 'boolean'
+                ? { mustChangePassword: userData.mustChangePassword }
+                : {}),
+            ...(Object.prototype.hasOwnProperty.call(userData, 'passwordUpdatedAt')
+                ? { passwordUpdatedAt: userData.passwordUpdatedAt ?? null }
+                : {}),
         };
 
         const createdUser = await this.postUsersRepository.postUser(createData);

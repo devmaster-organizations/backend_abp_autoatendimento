@@ -6,9 +6,12 @@ services:
       dockerfile: infra/Dockerfile
       target: dev
     working_dir: /usr/src/app
+    env_file:
+      - ../.env
     environment:
       PORT: 3000
       DATABASE_URL: postgresql://postgres:password@postgres:5432/autoatendimento?schema=public
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
     ports:
       - "3001:3000"
     volumes:
@@ -17,7 +20,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    command: sh -c "npm run prisma:generate && npx prisma migrate deploy && node dist/prisma/seed-chat-flow.cjs && npm run start:dev"
+    command: sh -c "npm run prisma:generate && npx prisma migrate deploy && npx tsx prisma/seed.ts && npm run start:dev"
     networks:
       - backend-dev
 

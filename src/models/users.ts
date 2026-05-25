@@ -5,6 +5,8 @@ export interface UserCreateData {
     email: string;
     passwordHash: string;
     role?: UserRole;
+    mustChangePassword?: boolean;
+    passwordUpdatedAt?: Date | null;
 }
 
 export interface UserPublic {
