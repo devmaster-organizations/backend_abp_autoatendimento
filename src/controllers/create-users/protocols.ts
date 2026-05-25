@@ -7,6 +7,8 @@ export interface CreateUserInput {
     email: string;
     password: string;
     role?: UserRole;
+    mustChangePassword?: boolean;
+    passwordUpdatedAt?: Date | null;
 }
 
 export interface IPostUsersController {

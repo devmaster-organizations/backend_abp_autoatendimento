@@ -16,6 +16,7 @@ const shutdown = async (signal: string) => {
 
 const startServer = async () => {
   try {
+    console.log(`[BOOT] Starting API (NODE_ENV=${process.env.NODE_ENV ?? 'undefined'})`);
     await Promise.all([postgres.connect(), connectPrisma()]);
 
     app.listen(PORT, () => {
@@ -34,6 +35,14 @@ process.on('SIGINT', () => {
 
 process.on('SIGTERM', () => {
   void shutdown('SIGTERM');
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[UNHANDLED_REJECTION]', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('[UNCAUGHT_EXCEPTION]', error);
 });
 
 void startServer();

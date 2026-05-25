@@ -11,6 +11,10 @@ export class PostgresPostUsers implements IPostUsersRepository {
                 email: userData.email,
                 passwordHash: userData.passwordHash,
                 role: userData.role ?? UserRole.SECRETARIA,
+                mustChangePassword: userData.mustChangePassword ?? false,
+                passwordUpdatedAt: typeof userData.passwordUpdatedAt === 'undefined'
+                    ? new Date()
+                    : userData.passwordUpdatedAt,
             },
             select: {
                 id: true,

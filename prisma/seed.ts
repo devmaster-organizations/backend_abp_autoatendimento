@@ -1,58 +1,72 @@
-import { chatFlowData } from './chat-flow-data';
+import { navigationNodeData } from './navigation-node-data';
 import { disconnectPrisma, prisma } from '../src/core/database/prisma';
 
-async function seedChatFlow() {
-  const nodes = Object.values(chatFlowData);
-  const nodeIds = new Set(nodes.map((node) => node.id));
+async function seedNavigationNodes() {
+  const nodes = navigationNodeData;
+  const nodeKeys = new Set(nodes.map((node) => node.key));
 
   for (const node of nodes) {
-    for (const option of node.options) {
-      if (!nodeIds.has(option.nextId)) {
-        throw new Error(
-          `Fluxo invalido: no "${node.id}" aponta para nextId inexistente "${option.nextId}".`,
-        );
-      }
+    if (node.parentKey && !nodeKeys.has(node.parentKey)) {
+      throw new Error(
+        `Seed invalido: no "${node.key}" aponta para parentKey inexistente "${node.parentKey}".`,
+      );
     }
   }
 
   await prisma.$transaction(async (tx) => {
+    const createdIdsByKey = new Map<string, bigint>();
+
     for (const node of nodes) {
-      await tx.chatFlowNode.upsert({
-        where: { id: node.id },
+      const parentId = node.parentKey ? createdIdsByKey.get(node.parentKey) ?? null : null;
+
+      if (node.parentKey && parentId === null) {
+        throw new Error(
+          `Seed invalido: parentKey "${node.parentKey}" ainda nao foi processado antes do no "${node.key}".`,
+        );
+      }
+
+      const createdNode = await tx.navigationNode.upsert({
+        where: { slug: node.slug },
         create: {
-          id: node.id,
-          botMessage: node.botMessage,
+          parentId,
+          title: node.title,
+          slug: node.slug,
+          prompt: node.prompt,
+          answerSummary: node.answerSummary,
+          responseType: node.responseType,
+          linkLabel: node.linkLabel,
+          linkUrl: node.linkUrl,
+          evidenceExcerpt: node.evidenceExcerpt,
+          evidenceSource: node.evidenceSource,
+          displayOrder: node.displayOrder,
+          isActive: node.isActive,
         },
         update: {
-          botMessage: node.botMessage,
+          parentId,
+          title: node.title,
+          prompt: node.prompt,
+          answerSummary: node.answerSummary,
+          responseType: node.responseType,
+          linkLabel: node.linkLabel,
+          linkUrl: node.linkUrl,
+          evidenceExcerpt: node.evidenceExcerpt,
+          evidenceSource: node.evidenceSource,
+          displayOrder: node.displayOrder,
+          isActive: node.isActive,
         },
       });
-    }
 
-    // Recria as opcoes para refletir exatamente o hash atual do fluxo.
-    await tx.chatFlowOption.deleteMany({});
-
-    for (const node of nodes) {
-      for (const [displayOrder, option] of node.options.entries()) {
-        await tx.chatFlowOption.create({
-          data: {
-            label: option.label,
-            fromNodeId: node.id,
-            toNodeId: option.nextId,
-            displayOrder,
-          },
-        });
-      }
+      createdIdsByKey.set(node.key, createdNode.id);
     }
   });
 }
 
-seedChatFlow()
+seedNavigationNodes()
   .then(async () => {
     await disconnectPrisma();
   })
   .catch(async (error) => {
-    console.error('Erro ao popular chat_flow_nodes/chat_flow_options:', error);
+    console.error('Erro ao popular navigation_nodes:', error);
     await disconnectPrisma();
     process.exit(1);
   });

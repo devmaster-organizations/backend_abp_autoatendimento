@@ -27,37 +27,90 @@ enum SatisfactionFlag {
   @@map("satisfaction_flag")
 }
 
+enum NavigationNodeResponseType {
+  TEXT
+  LINK
+
+  @@map("navigation_node_response_type")
+}
+
+enum UserSecurityTokenType {
+  INVITE
+  RESET
+
+  @@map("user_security_token_type")
+}
+
 model User {
-  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name              String    @db.VarChar(120)
-  email             String    @unique @db.VarChar(160)
-  passwordHash      String    @map("password_hash")
-  role              UserRole
-  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
-  answeredInquiries Inquiry[]
+  id                 String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name               String               @db.VarChar(120)
+  email              String               @unique @db.VarChar(160)
+  passwordHash       String               @map("password_hash")
+  role               UserRole
+  mustChangePassword Boolean              @default(false) @map("must_change_password")
+  passwordUpdatedAt  DateTime?            @map("password_updated_at") @db.Timestamptz(6)
+  createdAt          DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+  answeredInquiries  Inquiry[]
+  securityTokens     UserSecurityToken[]
+  navigationJourneys NavigationJourney[]
 
   @@map("users")
 }
 
+model NavigationJourney {
+  id             BigInt    @id @default(autoincrement()) @db.BigInt
+  sessionKey     String    @unique @map("session_key") @db.VarChar(220)
+  userId         String?   @map("user_id") @db.Uuid
+  ipAddress      String    @map("ip_address") @db.VarChar(64)
+  navigationFlow Json      @default("[]") @map("navigation_flow") @db.JsonB
+  lastNodeId     BigInt?   @map("last_node_id") @db.BigInt
+  lastNodeSlug   String?   @map("last_node_slug") @db.VarChar(180)
+  totalSteps     Int       @default(0) @map("total_steps")
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user           User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId], map: "idx_navigation_journeys_user_id")
+  @@index([ipAddress], map: "idx_navigation_journeys_ip_address")
+  @@index([lastNodeId], map: "idx_navigation_journeys_last_node_id")
+  @@map("navigation_journeys")
+}
+
 model NavigationNode {
-  id              BigInt           @id @default(autoincrement()) @db.BigInt
-  parentId        BigInt?          @map("parent_id") @db.BigInt
-  title           String           @db.VarChar(180)
-  slug            String           @unique @db.VarChar(180)
-  prompt          String?          @db.VarChar(1000)
-  answerSummary   String?          @map("answer_summary")
-  evidenceExcerpt String?          @map("evidence_excerpt")
-  evidenceSource  String?          @map("evidence_source") @db.VarChar(500)
-  displayOrder    Int              @default(0) @map("display_order")
-  isActive        Boolean          @default(true) @map("is_active")
-  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
-  parent          NavigationNode?  @relation("NavigationNodeHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
-  children        NavigationNode[] @relation("NavigationNodeHierarchy")
+  id              BigInt                    @id @default(autoincrement()) @db.BigInt
+  parentId        BigInt?                   @map("parent_id") @db.BigInt
+  title           String                    @db.VarChar(180)
+  slug            String                    @unique @db.VarChar(180)
+  prompt          String?                   @db.VarChar(1000)
+  answerSummary   String?                   @map("answer_summary")
+  responseType    NavigationNodeResponseType @default(TEXT) @map("response_type")
+  linkLabel       String?                   @map("link_label") @db.VarChar(180)
+  linkUrl         String?                   @map("link_url") @db.VarChar(500)
+  evidenceExcerpt String?                   @map("evidence_excerpt")
+  evidenceSource  String?                   @map("evidence_source") @db.VarChar(500)
+  displayOrder    Int                       @default(0) @map("display_order")
+  isActive        Boolean                   @default(true) @map("is_active")
+  createdAt       DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime                  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  parent          NavigationNode?          @relation("NavigationNodeHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children        NavigationNode[]          @relation("NavigationNodeHierarchy")
+  accessLogs      NavigationNodeAccessLog[]
 
   @@index([parentId], map: "idx_navigation_nodes_parent_id")
   @@map("navigation_nodes")
+}
+
+model NavigationNodeAccessLog {
+  id                   BigInt         @id @default(autoincrement()) @db.BigInt
+  navigationNodeId     BigInt         @map("navigation_node_id") @db.BigInt
+  selectedOptionLabel  String?        @map("selected_option_label") @db.VarChar(180)
+  selectedOptionTarget BigInt?        @map("selected_option_target") @db.BigInt
+  accessedAt           DateTime       @default(now()) @map("accessed_at") @db.Timestamptz(6)
+  navigationNode       NavigationNode @relation(fields: [navigationNodeId], references: [id], onDelete: Cascade)
+
+  @@index([navigationNodeId], map: "idx_navigation_node_access_logs_navigation_node_id")
+  @@map("navigation_node_access_logs")
 }
 
 model ChatFlowNode {
@@ -116,4 +169,19 @@ model InteractionLog {
 
   @@index([sessionId], map: "idx_interaction_logs_session_id")
   @@map("interaction_logs")
+}
+
+model UserSecurityToken {
+  id         BigInt               @id @default(autoincrement()) @db.BigInt
+  userId     String               @map("user_id") @db.Uuid
+  type       UserSecurityTokenType
+  tokenHash  String               @map("token_hash") @db.VarChar(255)
+  expiresAt  DateTime             @map("expires_at") @db.Timestamptz(6)
+  usedAt     DateTime?            @map("used_at") @db.Timestamptz(6)
+  createdAt  DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  user       User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "idx_user_security_tokens_user_id")
+  @@index([type], map: "idx_user_security_tokens_type")
+  @@map("user_security_tokens")
 }
