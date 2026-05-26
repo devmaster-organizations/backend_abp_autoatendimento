@@ -4,6 +4,7 @@ WORKDIR /usr/src/app
 COPY package*.json ./
 COPY tsconfig.json ./
 COPY prisma ./prisma
+COPY prisma.config.ts ./
 COPY src ./src
 RUN npm ci --silent
 RUN npm run build
