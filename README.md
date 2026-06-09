@@ -13,6 +13,18 @@ Guia pratico para criar novas rotas seguindo o padrao atual do projeto.
 - `GET /api/navigation-logs`: lista nos com filtros `parentId` e `onlyActive`
 - `GET /api/navigation-logs/:slug`: busca no por slug com filhos ativos
 
+## Usuario admin padrao no boot
+
+Ao subir a API, o backend garante automaticamente um usuario administrador padrao:
+
+- `email`: `admin@admin.com`
+- `senha`: `admin`
+
+Comportamento:
+
+- se nao existir, o usuario e criado;
+- se existir com outro perfil/senha, o registro e atualizado para o padrao.
+
 ## Recuperacao de senha por e-mail (SMTP)
 
 Para envio real do token de recuperacao, configure as variaveis abaixo:

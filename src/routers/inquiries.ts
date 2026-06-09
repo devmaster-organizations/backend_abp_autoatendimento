@@ -6,6 +6,30 @@ import { sendInquiryEmail } from '../core/notifications/inquiry-email';
 const router = Router();
 const repository = new PostgresInquiriesRepository();
 
+const getInquiryRecipientFromEnv = (): { recipientEmail: string; ccEmail: string | null } | null => {
+  const recipientEmail = String(
+    process.env.INQUIRY_DEFAULT_RECIPIENT_EMAIL
+    || process.env.INQUIRY_RECIPIENT_EMAIL
+    || process.env.SMTP_FROM
+    || '',
+  )
+    .trim()
+    .toLowerCase();
+
+  if (!recipientEmail) {
+    return null;
+  }
+
+  const ccEmail = String(process.env.INQUIRY_DEFAULT_CC_EMAIL || '')
+    .trim()
+    .toLowerCase();
+
+  return {
+    recipientEmail,
+    ccEmail: ccEmail || null,
+  };
+};
+
 const mapInquiry = (
   item: {
     id: bigint;
@@ -59,22 +83,24 @@ router.post('/send', async (req, res) => {
   }
 
   const activeConfig = await repository.getActiveEmailConfig();
+  const envConfig = getInquiryRecipientFromEnv();
 
-  if (!activeConfig) {
+  if (!activeConfig && !envConfig) {
     return res.status(400).json({
-      message: 'Destino padrao de duvidas nao configurado. Configure em /api/inquiries/email-config.',
+      message: 'Destino padrao de duvidas nao configurado. Defina INQUIRY_DEFAULT_RECIPIENT_EMAIL no .env ou configure em /api/inquiries/email-config.',
       code: 'INQUIRY_EMAIL_CONFIG_MISSING',
     });
   }
 
-  const ccEmail = normalizedCopyEmail || activeConfig.ccEmail || normalizedRequesterEmail;
+  const recipientEmail = activeConfig?.recipientEmail || envConfig?.recipientEmail || '';
+  const ccEmail = normalizedCopyEmail || activeConfig?.ccEmail || envConfig?.ccEmail || normalizedRequesterEmail;
 
   try {
     const delivery = await sendInquiryEmail({
       requesterName: normalizedRequesterName,
       requesterEmail: normalizedRequesterEmail,
       question: normalizedQuestion,
-      to: activeConfig.recipientEmail,
+      to: recipientEmail,
       cc: ccEmail,
     });
 
@@ -82,7 +108,7 @@ router.post('/send', async (req, res) => {
       requesterName: normalizedRequesterName,
       requesterEmail: normalizedRequesterEmail,
       question: normalizedQuestion,
-      recipientEmail: activeConfig.recipientEmail,
+      recipientEmail,
       ccEmail,
       emailMessageId: delivery?.messageId ?? null,
       emailSentAt: delivery ? new Date() : null,

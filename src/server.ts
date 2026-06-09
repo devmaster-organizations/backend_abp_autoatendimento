@@ -2,6 +2,7 @@ import { config } from 'dotenv';
 import { postgres } from './core/database/postgres';
 import { connectPrisma, disconnectPrisma } from './core/database/prisma';
 import { createApp } from './app';
+import { ensureDefaultAdminUser } from './bootstrap/ensure-default-admin';
 
 config();
 
@@ -18,6 +19,7 @@ const startServer = async () => {
   try {
     console.log(`[BOOT] Starting API (NODE_ENV=${process.env.NODE_ENV ?? 'undefined'})`);
     await Promise.all([postgres.connect(), connectPrisma()]);
+    await ensureDefaultAdminUser();
 
     app.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
