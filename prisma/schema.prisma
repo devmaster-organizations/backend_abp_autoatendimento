@@ -54,6 +54,8 @@ model User {
   answeredInquiries  Inquiry[]
   securityTokens     UserSecurityToken[]
   navigationJourneys NavigationJourney[]
+  inquiryEmailConfigCreated InquiryEmailConfig[] @relation("InquiryEmailConfigCreatedBy")
+  inquiryEmailConfigUpdated InquiryEmailConfig[] @relation("InquiryEmailConfigUpdatedBy")
 
   @@map("users")
 }
@@ -146,17 +148,38 @@ model Inquiry {
   requesterName      String         @map("requester_name") @db.VarChar(160)
   requesterEmail     String         @map("requester_email") @db.VarChar(160)
   question           String
+  recipientEmail     String?        @map("recipient_email") @db.VarChar(160)
+  ccEmail            String?        @map("cc_email") @db.VarChar(160)
+  emailMessageId     String?        @map("email_message_id") @db.VarChar(255)
+  emailSentAt        DateTime?      @map("email_sent_at") @db.Timestamptz(6)
   attachmentName     String?        @map("attachment_name") @db.VarChar(255)
   attachmentMimeType String?        @map("attachment_mime_type") @db.VarChar(100)
   attachmentData     Bytes?         @map("attachment_data")
   status             InquiryStatus  @default(ABERTA)
   answeredById       String?        @map("answered_by") @db.Uuid
+  answeredAt         DateTime?      @map("answered_at") @db.Timestamptz(6)
   createdAt          DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt          DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
   answeredBy         User?          @relation(fields: [answeredById], references: [id], onDelete: SetNull)
 
   @@index([status], map: "idx_inquiries_status")
   @@map("inquiries")
+}
+
+model InquiryEmailConfig {
+  id             BigInt    @id @default(autoincrement()) @db.BigInt
+  recipientEmail String    @map("recipient_email") @db.VarChar(160)
+  ccEmail        String?   @map("cc_email") @db.VarChar(160)
+  isActive       Boolean   @default(true) @map("is_active")
+  createdById    String?   @map("created_by") @db.Uuid
+  updatedById    String?   @map("updated_by") @db.Uuid
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdBy      User?     @relation("InquiryEmailConfigCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy      User?     @relation("InquiryEmailConfigUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@index([isActive], map: "idx_inquiry_email_configs_is_active")
+  @@map("inquiry_email_configs")
 }
 
 model InteractionLog {

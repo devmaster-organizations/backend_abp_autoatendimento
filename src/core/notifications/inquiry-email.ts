@@ -1,19 +1,21 @@
 import nodemailer from 'nodemailer';
 
-type PasswordResetEmailInput = {
+type SmtpAuthMethod = 'login' | 'oauth2';
+
+type InquiryEmailInput = {
+  requesterName: string;
+  requesterEmail: string;
+  question: string;
   to: string;
-  token: string;
-  expiresAt: Date;
+  cc: string | null;
 };
 
-type PasswordResetEmailResult = {
+type InquiryEmailResult = {
   messageId: string;
   accepted: string[];
   rejected: string[];
   response: string;
 };
-
-type SmtpAuthMethod = 'login' | 'oauth2';
 
 type MailConfig = {
   smtpHost: string | undefined;
@@ -22,7 +24,6 @@ type MailConfig = {
   smtpUser: string | undefined;
   smtpPass: string | undefined;
   smtpFrom: string | undefined;
-  frontendUrl: string;
   authMethod: SmtpAuthMethod;
   oauth2TenantId: string;
   oauth2ClientId: string | undefined;
@@ -50,7 +51,6 @@ const readMailConfig = (): MailConfig => {
     smtpUser: process.env.SMTP_USER?.trim(),
     smtpPass: process.env.SMTP_PASS?.trim(),
     smtpFrom: process.env.SMTP_FROM?.trim(),
-    frontendUrl: process.env.FRONTEND_URL?.trim() || 'http://localhost:3000',
     authMethod: normalizeAuthMethod(process.env.SMTP_AUTH_METHOD),
     oauth2TenantId,
     oauth2ClientId: process.env.SMTP_OAUTH2_CLIENT_ID?.trim(),
@@ -68,14 +68,6 @@ const hasBaseSmtpConfig = (config: MailConfig) =>
 
 const hasOauth2RefreshConfig = (config: MailConfig) =>
   Boolean(config.oauth2ClientId && config.oauth2ClientSecret && config.oauth2RefreshToken);
-
-const buildConfigHelp = (config: MailConfig): string => {
-  if (config.authMethod === 'oauth2') {
-    return 'Configure SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_FROM and OAuth2 vars (SMTP_OAUTH2_ACCESS_TOKEN OR SMTP_OAUTH2_CLIENT_ID/SMTP_OAUTH2_CLIENT_SECRET/SMTP_OAUTH2_REFRESH_TOKEN).';
-  }
-
-  return 'Configure SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS and SMTP_FROM.';
-};
 
 const createTransporter = (config: MailConfig) => {
   if (!hasBaseSmtpConfig(config)) {
@@ -130,61 +122,48 @@ const createTransporter = (config: MailConfig) => {
   });
 };
 
-export const sendPasswordResetEmail = async ({
-  to,
-  token,
-  expiresAt,
-}: PasswordResetEmailInput): Promise<PasswordResetEmailResult | null> => {
+export const sendInquiryEmail = async (input: InquiryEmailInput): Promise<InquiryEmailResult | null> => {
   const config = readMailConfig();
-  const resetLink = `${config.frontendUrl}/reset-password?email=${encodeURIComponent(to)}`;
+  const transporter = createTransporter(config);
 
+  if (!transporter) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('SMTP not configured for inquiry email.');
+    }
+
+    console.warn('[INQUIRY_EMAIL] SMTP not configured. Skipping dispatch in dev.');
+    return null;
+  }
+
+  const subject = `Duvida recebida - ${input.requesterName}`;
   const text = [
-    'Voce solicitou a recuperacao da sua senha.',
+    'Nova duvida recebida pelo autoatendimento.',
     '',
-    `Token de recuperacao: ${token}`,
-    `Valido ate: ${expiresAt.toISOString()}`,
+    `Nome: ${input.requesterName}`,
+    `Email do solicitante: ${input.requesterEmail}`,
     '',
-    `Abra a pagina: ${resetLink}`,
-    'Cole o token e defina a nova senha.',
-    '',
-    'Se voce nao solicitou essa alteracao, ignore este e-mail.',
+    'Mensagem:',
+    input.question,
   ].join('\n');
 
   const html = `
     <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #111827;">
-      <h2 style="margin-bottom: 12px;">Recuperacao de senha</h2>
-      <p>Voce solicitou a recuperacao da sua senha.</p>
-      <p><strong>Token de recuperacao:</strong> ${token}</p>
-      <p><strong>Valido ate:</strong> ${expiresAt.toISOString()}</p>
-      <p>
-        Abra a pagina
-        <a href="${resetLink}">${resetLink}</a>
-        e cole o token para definir a nova senha.
-      </p>
-      <p>Se voce nao solicitou essa alteracao, ignore este e-mail.</p>
+      <h2>Nova duvida recebida</h2>
+      <p><strong>Nome:</strong> ${input.requesterName}</p>
+      <p><strong>Email do solicitante:</strong> ${input.requesterEmail}</p>
+      <p><strong>Mensagem:</strong></p>
+      <p style="white-space: pre-line;">${input.question}</p>
     </div>
   `;
 
-  const transporter = createTransporter(config);
-
-  if (!transporter) {
-    const warning = '[EMAIL] SMTP not configured. Falling back to token in logs.';
-
-    if (process.env.NODE_ENV === 'production') {
-      throw new Error(`${warning} ${buildConfigHelp(config)}`);
-    }
-
-    console.warn(`${warning} ${buildConfigHelp(config)}`);
-    console.info(`[PASSWORD_RESET_TOKEN] ${to} => ${token}`);
-    return null;
-  }
-
   const info = await transporter.sendMail({
     from: config.smtpFrom,
-    to,
-    subject: 'Recuperacao de senha - Fatec Autoatendimento',
+    to: input.to,
+    cc: input.cc || undefined,
+    subject,
     text,
     html,
+    replyTo: input.requesterEmail,
   });
 
   return {
