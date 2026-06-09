@@ -16,6 +16,7 @@ const openApiDocument = {
     { name: 'Auth' },
     { name: 'Users' },
     { name: 'NavigationLogs' },
+    { name: 'Inquiries' },
   ],
   components: {
     securitySchemes: {
@@ -246,6 +247,79 @@ const openApiDocument = {
           displayOrder: { type: 'integer' },
           isActive: { type: 'boolean' },
         },
+      },
+      InquirySendInput: {
+        type: 'object',
+        properties: {
+          requesterName: { type: 'string' },
+          requesterEmail: { type: 'string', format: 'email' },
+          question: { type: 'string' },
+          copyEmail: { type: 'string', format: 'email', nullable: true },
+        },
+        required: ['requesterName', 'requesterEmail', 'question'],
+      },
+      InquiryToggleRespondedInput: {
+        type: 'object',
+        properties: {
+          responded: { type: 'boolean' },
+        },
+        required: ['responded'],
+      },
+      InquiryEmailConfigInput: {
+        type: 'object',
+        properties: {
+          recipientEmail: { type: 'string', format: 'email' },
+          ccEmail: { type: 'string', format: 'email', nullable: true },
+        },
+        required: ['recipientEmail'],
+      },
+      InquiryItem: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          requesterName: { type: 'string' },
+          requesterEmail: { type: 'string', format: 'email' },
+          question: { type: 'string' },
+          recipientEmail: { type: 'string', format: 'email', nullable: true },
+          ccEmail: { type: 'string', format: 'email', nullable: true },
+          emailMessageId: { type: 'string', nullable: true },
+          emailSentAt: { type: 'string', format: 'date-time', nullable: true },
+          status: { type: 'string', enum: ['ABERTA', 'RESPONDIDA'] },
+          answeredAt: { type: 'string', format: 'date-time', nullable: true },
+          createdAt: { type: 'string', format: 'date-time' },
+          updatedAt: { type: 'string', format: 'date-time' },
+          answeredBy: {
+            type: 'object',
+            nullable: true,
+            properties: {
+              id: { type: 'string' },
+              name: { type: 'string' },
+              email: { type: 'string', format: 'email' },
+            },
+          },
+        },
+        required: ['id', 'requesterName', 'requesterEmail', 'question', 'status', 'createdAt', 'updatedAt'],
+      },
+      InquiryDeliveryInfo: {
+        type: 'object',
+        nullable: true,
+        properties: {
+          messageId: { type: 'string' },
+          accepted: { type: 'array', items: { type: 'string' } },
+          rejected: { type: 'array', items: { type: 'string' } },
+          response: { type: 'string' },
+        },
+      },
+      InquiryEmailConfigResponse: {
+        type: 'object',
+        properties: {
+          configured: { type: 'boolean' },
+          id: { type: 'string', nullable: true },
+          recipientEmail: { type: 'string', format: 'email', nullable: true },
+          ccEmail: { type: 'string', format: 'email', nullable: true },
+          updatedAt: { type: 'string', format: 'date-time', nullable: true },
+        },
+        required: ['configured', 'recipientEmail', 'ccEmail'],
       },
     },
   },
@@ -568,6 +642,175 @@ const openApiDocument = {
           },
           '404': {
             description: 'Usuario nao encontrado',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/inquiries/send': {
+      post: {
+        tags: ['Inquiries'],
+        summary: 'Envia duvida por email e salva registro no banco',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/InquirySendInput' },
+            },
+          },
+        },
+        responses: {
+          '201': {
+            description: 'Duvida registrada e enviada',
+            content: {
+              'application/json': {
+                schema: {
+                  allOf: [
+                    { $ref: '#/components/schemas/InquiryItem' },
+                    {
+                      type: 'object',
+                      properties: {
+                        delivery: { $ref: '#/components/schemas/InquiryDeliveryInfo' },
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+          '400': {
+            description: 'Validacao ou configuracao ausente',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/inquiries': {
+      get: {
+        tags: ['Inquiries'],
+        summary: 'Lista duvidas registradas',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          '200': {
+            description: 'Lista de duvidas',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'array',
+                  items: { $ref: '#/components/schemas/InquiryItem' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/inquiries/email-config': {
+      get: {
+        tags: ['Inquiries'],
+        summary: 'Retorna configuracao ativa de destinatario de duvidas',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          '200': {
+            description: 'Configuracao atual',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/InquiryEmailConfigResponse' },
+              },
+            },
+          },
+        },
+      },
+      put: {
+        tags: ['Inquiries'],
+        summary: 'Define destinatario padrao para receber duvidas',
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/InquiryEmailConfigInput' },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Configuracao atualizada',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'string' },
+                    recipientEmail: { type: 'string', format: 'email' },
+                    ccEmail: { type: 'string', format: 'email', nullable: true },
+                    isActive: { type: 'boolean' },
+                    createdAt: { type: 'string', format: 'date-time' },
+                    updatedAt: { type: 'string', format: 'date-time' },
+                  },
+                },
+              },
+            },
+          },
+          '400': {
+            description: 'Payload invalido',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/inquiries/{id}/responded': {
+      patch: {
+        tags: ['Inquiries'],
+        summary: 'Atualiza flag responded da duvida',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/InquiryToggleRespondedInput' },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Duvida atualizada',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/InquiryItem' },
+              },
+            },
+          },
+          '400': {
+            description: 'Payload invalido',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          '404': {
+            description: 'Duvida nao encontrada',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/ErrorResponse' },
